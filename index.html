@@ -2,82 +2,217 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pong Game</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Modern Pong Game</title>
   <style>
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #000;
+      padding: 0;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
       color: white;
-      text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      overflow: hidden;
     }
 
     h1 {
-      margin-top: 30px;
-      font-size: 3rem;
+      margin-bottom: 20px;
+      font-size: 2.5rem;
     }
 
     .scoreboard {
-      font-size: 2rem;
-      margin: 20px 0;
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      letter-spacing: 0.1em;
+      user-select: none;
+    }
+
+    .score {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 8px;
+      transition: transform 0.3s ease;
     }
 
     canvas {
-      border: 4px solid white;
-      background: #111;
+      background: #ffffff10;
+      border: 2px solid #ffffff30;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px #0003;
+      display: block;
     }
 
-    .info-box {
+    .instructions {
       margin-top: 32px;
-      padding: 16px;
-      border: 1px solid #444;
-      background: #1a1a1a;
+      padding: 20px;
+      background: #ffffff10;
+      border: 1px solid #ffffff20;
+      border-radius: 12px;
       max-width: 600px;
-      text-align: left;
-      border-radius: 10px;
-    }
-
-    .info-box h2 {
-      color: #0ff;
+      color: #eee;
     }
 
     ul {
-      padding-left: 20px;
-    }
-
-    li {
-      margin-bottom: 10px;
+      text-align: left;
+      line-height: 1.8;
     }
 
     kbd {
-      background: #333;
-      padding: 2px 6px;
+      background: #fff2;
+      border: 1px solid #fff4;
       border-radius: 4px;
-      font-family: monospace;
-      color: #fff;
+      padding: 2px 6px;
+      font-weight: bold;
     }
+
+    /* Dashed center line */
+    #pongCanvas {
+      position: relative;
+    }
+
   </style>
 </head>
 <body>
-  <h1>Pong Game</h1>
+  <h1>Modern Pong Game</h1>
   <div class="scoreboard">
-    <span id="score-left">0</span> : <span id="score-right">0</span>
+    <span id="score-left" class="score">0</span> : <span id="score-right" class="score">0</span>
   </div>
   <canvas id="pongCanvas" width="800" height="400"></canvas>
-  <div class="info-box">
+
+  <div class="instructions">
     <h2>How to Play</h2>
     <ul>
-      <li><strong>Player 1:</strong> Use <kbd>W</kbd> (up) and <kbd>S</kbd> (down) keys to move your paddle.</li>
-      <li><strong>Player 2:</strong> Use <kbd>Up</kbd> and <kbd>Down</kbd> arrow keys to move your paddle.</li>
-      <li>Try to bounce the ball back and prevent it from passing your paddle.</li>
-      <li>Score points by getting the ball past your opponent's paddle.</li>
-      <li>The first player to reach the winning score wins!</li>
+      <li><strong>Player 1:</strong> Use <kbd>W</kbd> (up) and <kbd>S</kbd> (down)</li>
+      <li><strong>Player 2:</strong> Use <kbd>↑</kbd> and <kbd>↓</kbd> arrow keys</li>
+      <li>Don't let the ball pass your paddle</li>
+      <li>Score by getting the ball past your opponent</li>
     </ul>
   </div>
-  <script src="script.js"></script>
+
+  <script>
+    const canvas = document.getElementById('pongCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const paddleWidth = 10, paddleHeight = 100;
+    let leftY = canvas.height / 2 - paddleHeight / 2;
+    let rightY = canvas.height / 2 - paddleHeight / 2;
+    let ballX = canvas.width / 2;
+    let ballY = canvas.height / 2;
+    let ballSpeedX = 5, ballSpeedY = 2;
+    const paddleSpeed = 8;
+    let scoreLeft = 0, scoreRight = 0;
+
+    const keys = {};
+
+    document.addEventListener('keydown', (e) => keys[e.key] = true);
+    document.addEventListener('keyup', (e) => keys[e.key] = false);
+
+    function drawPaddle(x, y) {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(x, y, paddleWidth, paddleHeight);
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, 10, 0, Math.PI * 2);
+      ctx.fillStyle = 'red'; // Ball color changed to red
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawCenterLine() {
+      ctx.strokeStyle = '#ffffff50';
+      ctx.setLineDash([10, 15]);
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 0);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function update() {
+      if (keys['w'] && leftY > 0) leftY -= paddleSpeed;
+      if (keys['s'] && leftY < canvas.height - paddleHeight) leftY += paddleSpeed;
+      if (keys['ArrowUp'] && rightY > 0) rightY -= paddleSpeed;
+      if (keys['ArrowDown'] && rightY < canvas.height - paddleHeight) rightY += paddleSpeed;
+
+      ballX += ballSpeedX;
+      ballY += ballSpeedY;
+
+      if (ballY <= 0 || ballY >= canvas.height) ballSpeedY = -ballSpeedY;
+
+      if (
+        ballX - 10 <= paddleWidth &&
+        ballY > leftY &&
+        ballY < leftY + paddleHeight
+      ) {
+        ballSpeedX = -ballSpeedX;
+      }
+
+      if (
+        ballX + 10 >= canvas.width - paddleWidth &&
+        ballY > rightY &&
+        ballY < rightY + paddleHeight
+      ) {
+        ballSpeedX = -ballSpeedX;
+      }
+
+      if (ballX < 0) {
+        scoreRight++;
+        animateScore("score-right");
+        resetBall();
+      }
+
+      if (ballX > canvas.width) {
+        scoreLeft++;
+        animateScore("score-left");
+        resetBall();
+      }
+
+      document.getElementById("score-left").innerText = scoreLeft;
+      document.getElementById("score-right").innerText = scoreRight;
+    }
+
+    function animateScore(elementId) {
+      const el = document.getElementById(elementId);
+      el.style.transform = 'scale(1.5)';
+      el.style.transition = 'transform 0.3s ease';
+      setTimeout(() => {
+        el.style.transform = 'scale(1)';
+      }, 300);
+    }
+
+    function resetBall() {
+      ballX = canvas.width / 2;
+      ballY = canvas.height / 2;       
+      ballSpeedX = -ballSpeedX;
+      ballSpeedY = 2 * (Math.random() > 0.5 ? 1 : -1);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawCenterLine();
+      drawPaddle(0, leftY);
+      drawPaddle(canvas.width - paddleWidth, rightY);
+      drawBall();
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+  </script>
 </body>
 </html>
